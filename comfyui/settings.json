@@ -1,0 +1,6 @@
+{
+    "huggingface_token": "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",
+    "civitai_token": "",
+    "ngrok_token": "2xkjck8mkfFa7i6hRFFH8hlv3Qa_665fivYczTE9ZUgsVNRWh",
+    "empowerment_text": "$unet\nhttps://workers-playground-lucky-grass-a191.faturrachman6773.workers.dev/models/numz/SeedVR2_comfyUI/main/seedvr2_ema_7b_sharp_fp16.safetensors"
+}
