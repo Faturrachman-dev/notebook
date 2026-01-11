@@ -93,10 +93,31 @@ def setup_environment():
     # 5. Helper Libraries (PyNgrok, Triton)
     print("Checking Essential Libraries...")
     
-    # Debug: Print Environment details
+    # Check Environment & Downgrade if needed
     try:
         import torch
-        print(f"Environment: Python {sys.version_info.major}.{sys.version_info.minor} | Torch {torch.__version__} | CUDA {torch.version.cuda}")
+        print(f"Current Environment: Torch {torch.__version__} | CUDA {torch.version.cuda}")
+        
+        # Downgrade 2.8+ to 2.5.1 (Stable) for SageAttention support
+        if "2.8" in torch.__version__:
+            print(">> Detected unstable PyTorch 2.8. Downgrading to 2.5.1+cu124 for stability & SageAttention...")
+            # Uninstall current
+            subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "torch", "torchvision", "torchaudio"], check=False)
+            
+            # Install Stable 2.5.1
+            install_cmd = [
+                sys.executable, "-m", "pip", "install", 
+                "torch==2.5.1", "torchvision==0.20.1", "torchaudio==2.5.1", 
+                "--index-url", "https://download.pytorch.org/whl/cu124"
+            ]
+            subprocess.run(install_cmd, check=True)
+            print(">> PyTorch downgraded successfully.")
+            
+            # Update globals after install
+            import importlib
+            importlib.reload(torch)
+            print(f"New Environment: Torch {torch.__version__}")
+            
     except ImportError:
         print("Environment: Torch not imported.")
 
@@ -113,16 +134,16 @@ def setup_environment():
         print(">> Error installing triton.")
         
     # SageAttention Best-Effort Install
-    print("Attempting to install SageAttention 2.2.0 (Wheel)...")
+    print("Attempting to install SageAttention 2.2.0...")
     try:
-        # Try generic Linux wheel for Python 3.12
-        wheel_url = "https://github.com/thu-ml/SageAttention/releases/download/v2.2.0/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl"
+        # Wheel for Torch 2.5.1 + CUDA 12.4 + Python 3.12 (Kaggle default)
+        # Note: If Kaggle is 3.11, change cp312 to cp311. Logs said 3.12.
+        wheel_url = "https://github.com/thu-ml/SageAttention/releases/download/v2.2.0/sageattention-2.2.0+cu124torch2.5.1-cp312-cp312-linux_x86_64.whl"
         subprocess.run([sys.executable, "-m", "pip", "install", "-q", wheel_url], check=True)
         print("SageAttention installed successfully.")
     except subprocess.CalledProcessError:
-        print(">> Warning: SageAttention wheel installation failed.")
-        print(">> Your environment (PyTorch/CUDA) might be too new or mismatched.")
-        print(">> SeedVR will fallback to Flash Attention or SDPA.")
+        print(">> Warning: SageAttention wheel installation failed. Fallback to SDPA.")
+
 
     print("Setup Complete.")
 
