@@ -135,16 +135,25 @@ def setup_environment():
     print("Attempting to install SageAttention 2.2.0...")
     
     # Authenticated Insight: Using Kijai's Precompiled Wheels from HuggingFace
-    # These are verified to work on Linux cp312 environments without compilation.
     wheel_url = "https://huggingface.co/Kijai/PrecompiledWheels/resolve/main/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl"
+    local_wheel = "sageattention.whl"
     
     try:
-        print(f"Downloading/Installing wheel: {wheel_url} ...")
-        subprocess.run([sys.executable, "-m", "pip", "install", "-q", wheel_url], check=True)
+        print(f"Downloading wheel with aria2c: {wheel_url} ...")
+        # Use aria2c for robust download (handles timeouts/retries)
+        subprocess.run(["aria2c", "-q", "-x", "4", "-o", local_wheel, wheel_url], check=True)
+        
+        print(f"Installing local wheel...")
+        subprocess.run([sys.executable, "-m", "pip", "install", "-q", local_wheel], check=True)
         print(">> SageAttention installed successfully!")
+        
+        # Cleanup
+        Path(local_wheel).unlink(missing_ok=True)
+        
     except subprocess.CalledProcessError:
-        print(">> Warning: SageAttention wheel installation failed (Kijai URL).")
+        print(">> Warning: SageAttention installation failed (Download or Install error).")
         print(">> Falling back to Flash Attention/SDPA.")
+        Path(local_wheel).unlink(missing_ok=True)
 
     print("Setup Complete.")
 
