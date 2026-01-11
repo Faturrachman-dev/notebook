@@ -105,14 +105,19 @@ def setup_environment():
     except subprocess.CalledProcessError:
         print(">> Error installing triton.")
 
-    # SageAttention (Install from GitHub for V2 support)
-    try:
-        print("Installing SageAttention (from GitHub)...")
-        # Using git+https to get latest version (V2+) which might not be on PyPI
-        subprocess.run([sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/thu-ml/SageAttention.git", "--no-build-isolation"], check=True)
-    except subprocess.CalledProcessError as e:
-        print(f">> Error installing SageAttention: {e}")
-        print(">> Note: SageAttention compilation requires CUDA toolkit and proper environment.")
+    # SageAttention:
+    # We removed explicit global installation because building from source failed and PyPI version was missing.
+    # We will rely on ComfyUI-SeedVR2_VideoUpscaler/requirements.txt to handle this.
+    
+    # Debug: Print SeedVR requirements to see what it wants
+    seed_reqs = custom_nodes / "ComfyUI-SeedVR2_VideoUpscaler" / "requirements.txt"
+    if seed_reqs.exists():
+        print(f"--- SeedVR Requirements ({seed_reqs}) ---")
+        try:
+             subprocess.run(["cat", str(seed_reqs)], check=False)
+        except FileNotFoundError:
+             pass # cat might not exist on Windows
+        print("-------------------------------")
 
     print("Setup Complete.")
 
