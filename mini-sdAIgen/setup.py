@@ -79,7 +79,25 @@ def setup_environment():
             
             # Install PyNgrok
             subprocess.run([sys.executable, "-m", "pip", "install", "-q", "pyngrok"], check=True)
-            
+
+            # Install SageAttention & Triton (User Request)
+            print("Installing SageAttention & Triton...")
+            try:
+                subprocess.run([sys.executable, "-m", "pip", "install", "-q", "triton>=3.0.0"], check=True)
+                subprocess.run([sys.executable, "-m", "pip", "install", "-q", "sageattention==2.2.0", "--no-build-isolation"], check=True)
+            except subprocess.CalledProcessError:
+                print(">> Warning: SageAttention installation failed. It might require specific CUDA/Triton versions.")
+
+            # Install SeedVR 2.5 Custom Node
+            seed_path = comfy_path / "custom_nodes" / "ComfyUI-SeedVR2_VideoUpscaler"
+            if not seed_path.exists():
+                print("Installing SeedVR2 Upscaler...")
+                subprocess.run(["git", "clone", "-q", "https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler", str(seed_path)], check=True)
+                # SeedVR reqs
+                seed_reqs = seed_path / "requirements.txt"
+                if seed_reqs.exists():
+                    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(seed_reqs)], check=False)
+
     print("Setup Complete.")
 
 if __name__ == "__main__":
