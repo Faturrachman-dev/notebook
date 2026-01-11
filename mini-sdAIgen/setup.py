@@ -110,9 +110,9 @@ def setup_environment():
         import torch
         print(f"Current Environment: Torch {torch.__version__} | CUDA {torch.version.cuda}")
         
-        # Downgrade 2.8+ to 2.7.1 (Stable)
-        if "2.8" in torch.__version__:
-            print(">> Detected unstable PyTorch 2.8. Downgrading to 2.7.1 for stability...")
+        # Downgrade 2.8/2.9+ to 2.7.1 (Stable)
+        if "2.8" in torch.__version__ or "2.9" in torch.__version__:
+            print(f">> Detected unstable PyTorch {torch.__version__}. Downgrading to 2.7.1+cu126 for stability...")
             # Uninstall current
             subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "torch", "torchvision", "torchaudio", "xformers"], check=False)
             
