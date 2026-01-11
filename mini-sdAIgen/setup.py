@@ -133,15 +133,18 @@ def setup_environment():
         
     # SageAttention Best-Effort Install
     print("Attempting to install SageAttention 2.2.0...")
+    
+    # Authenticated Insight: Using Kijai's Precompiled Wheels from HuggingFace
+    # These are verified to work on Linux cp312 environments without compilation.
+    wheel_url = "https://huggingface.co/Kijai/PrecompiledWheels/resolve/main/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl"
+    
     try:
-        # Wheel for Torch 2.5.1 + CUDA 12.4 + Python 3.12 (Kaggle default)
-        # Note: If Kaggle is 3.11, change cp312 to cp311. Logs said 3.12.
-        wheel_url = "https://github.com/thu-ml/SageAttention/releases/download/v2.2.0/sageattention-2.2.0+cu124torch2.5.1-cp312-cp312-linux_x86_64.whl"
+        print(f"Downloading/Installing wheel: {wheel_url} ...")
         subprocess.run([sys.executable, "-m", "pip", "install", "-q", wheel_url], check=True)
-        print("SageAttention installed successfully.")
+        print(">> SageAttention installed successfully!")
     except subprocess.CalledProcessError:
-        print(">> Warning: SageAttention wheel installation failed. Fallback to SDPA.")
-
+        print(">> Warning: SageAttention wheel installation failed (Kijai URL).")
+        print(">> Falling back to Flash Attention/SDPA.")
 
     print("Setup Complete.")
 
