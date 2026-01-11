@@ -61,42 +61,49 @@ def setup_environment():
                 
                 subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(temp_reqs)], check=True)
                 temp_reqs.unlink()
-            
-            # Install ComfyUI-Manager
-            manager_path = comfy_path / "custom_nodes" / "ComfyUI-Manager"
-            if not manager_path.exists():
-                print("Installing ComfyUI-Manager...")
-                subprocess.run(["git", "clone", "-q", "https://github.com/ltdrdata/ComfyUI-Manager", str(manager_path)], check=True)
-            
-            # Install Manager Requirements
-            man_reqs = manager_path / "requirements.txt"
-            if man_reqs.exists():
-                subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(man_reqs)], check=False)
 
-            # Fix SQLAlchemy
+            # Fix SQLAlchemy (Always run on fresh install)
             print("Fixing SQLAlchemy...")
             subprocess.run([sys.executable, "-m", "pip", "install", "-q", "sqlalchemy", "--upgrade", "--force-reinstall"], check=True)
-            
-            # Install PyNgrok
-            subprocess.run([sys.executable, "-m", "pip", "install", "-q", "pyngrok"], check=True)
 
-            # Install SageAttention & Triton (User Request)
-            print("Installing SageAttention & Triton...")
-            try:
-                subprocess.run([sys.executable, "-m", "pip", "install", "-q", "triton>=3.0.0"], check=True)
-                subprocess.run([sys.executable, "-m", "pip", "install", "-q", "sageattention==2.2.0", "--no-build-isolation"], check=True)
-            except subprocess.CalledProcessError:
-                print(">> Warning: SageAttention installation failed. It might require specific CUDA/Triton versions.")
+    # 4. Check & Install Custom Nodes (Runs even if ComfyUI exists)
+    if comfy_path.exists():
+        custom_nodes = comfy_path / "custom_nodes"
+        
+        # A. ComfyUI-Manager
+        manager_path = custom_nodes / "ComfyUI-Manager"
+        if not manager_path.exists():
+            print("Installing ComfyUI-Manager...")
+            subprocess.run(["git", "clone", "-q", "https://github.com/ltdrdata/ComfyUI-Manager", str(manager_path)], check=True)
+        # Always check Manager reqs
+        man_reqs = manager_path / "requirements.txt"
+        if man_reqs.exists():
+             subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(man_reqs)], check=False)
 
-            # Install SeedVR 2.5 Custom Node
-            seed_path = comfy_path / "custom_nodes" / "ComfyUI-SeedVR2_VideoUpscaler"
-            if not seed_path.exists():
-                print("Installing SeedVR2 Upscaler...")
-                subprocess.run(["git", "clone", "-q", "https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler", str(seed_path)], check=True)
-                # SeedVR reqs
-                seed_reqs = seed_path / "requirements.txt"
-                if seed_reqs.exists():
-                    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(seed_reqs)], check=False)
+        # B. SeedVR2 Upscaler
+        seed_path = custom_nodes / "ComfyUI-SeedVR2_VideoUpscaler"
+        if not seed_path.exists():
+            print("Installing SeedVR2 Upscaler...")
+            subprocess.run(["git", "clone", "-q", "https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler", str(seed_path)], check=True)
+        # Always check SeedVR reqs
+        seed_reqs = seed_path / "requirements.txt"
+        if seed_reqs.exists():
+            subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(seed_reqs)], check=False)
+
+    # 5. Helper Libraries (SageAttention, PyNgrok, Triton)
+    # Just run pip install; it checks satisfaction automatically
+    print("Checking Essential Libraries (SageAttention, Triton, PyNgrok)...")
+    libs = [
+        "pyngrok",
+        "triton>=3.0.0",
+        "sageattention==2.2.0"
+    ]
+    try:
+        # We perform these installs; pip -q won't spam if already satisfied
+        subprocess.run([sys.executable, "-m", "pip", "install", "-q"] + libs + ["--no-build-isolation"], check=True)
+    except subprocess.CalledProcessError:
+        print(">> Warning: Some libraries failed to install (likely SageAttention compilation issues).")
+
 
     print("Setup Complete.")
 
