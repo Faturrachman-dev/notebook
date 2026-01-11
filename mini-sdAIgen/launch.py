@@ -75,5 +75,47 @@ def run_download():
         
     print("Download process finished.")
 
+def start_comfyui():
+    """Starts ComfyUI with optional Ngrok tunnel"""
+    
+    # 1. Setup Ngrok if token exists
+    if SETTINGS_PATH.exists():
+        with open(SETTINGS_PATH, 'r') as f:
+            settings = json.load(f)
+            ngrok_token = settings.get('ngrok_token')
+            
+        if ngrok_token:
+            print("Starting Ngrok Tunnel...")
+            try:
+                from pyngrok import ngrok, conf
+                conf.get_default().auth_token = ngrok_token
+                public_url = ngrok.connect(8188).public_url
+                print(f"\n>>> ComfyUI Public URL: {public_url} <<<\n")
+            except ImportError:
+                 print("PyNgrok not installed. Tunnel skipped.")
+            except Exception as e:
+                print(f"Ngrok Error: {e}")
+        else:
+            print("No Ngrok token found. Local access only.")
+
+    # 2. Launch ComfyUI
+    comfy_main = core.paths.DEFAULT_COMFY_ROOT / "main.py"
+    if comfy_main.exists():
+        print(f"Launching ComfyUI from {comfy_main}...")
+        # Use subprocess to run it, effectively blocking this script
+        # In a notebook, we might want to run this in a cell directly, but 
+        # for a script-based approach, this is how we do it.
+        # We use sys.executable to ensure we use the same python
+        import subprocess
+        import sys
+        
+        args = [sys.executable, str(comfy_main), "--listen", "--port", "8188"]
+        subprocess.run(args)
+    else:
+        print(f"ComfyUI main.py not found at {comfy_main}")
+
 if __name__ == "__main__":
-    pass
+    if len(sys.argv) > 1 and sys.argv[1] == "--launch":
+        start_comfyui()
+    else:
+        run_download()
