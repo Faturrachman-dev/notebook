@@ -13,6 +13,39 @@ from ui.widgets import show_widgets
 
 SETTINGS_PATH = Path('settings.json')
 
+# Environment Detection
+def detect_environment():
+    if Path('/kaggle/working').exists():
+        return 'Kaggle', Path('/kaggle/working')
+    elif Path('/content').exists():
+        return 'Colab', Path('/content')
+    else:
+        return 'Local', Path('.')
+
+ENV_NAME, ROOT_DIR = detect_environment()
+print(f"Detected Environment: {ENV_NAME}")
+
+# Update core paths dynamically
+import core.paths
+core.paths.DEFAULT_COMFY_ROOT = ROOT_DIR / "ComfyUI"
+core.paths.DEFAULT_MODELS_ROOT = core.paths.DEFAULT_COMFY_ROOT / "models"
+core.paths.DEFAULT_NODES_ROOT = core.paths.DEFAULT_COMFY_ROOT / "custom_nodes"
+
+# Re-map the PREFIX_MAP with new roots
+core.paths.PREFIX_MAP = {
+    '$unet': core.paths.DEFAULT_MODELS_ROOT / "unet",
+    '$clip': core.paths.DEFAULT_MODELS_ROOT / "clip",
+    '$vae': core.paths.DEFAULT_MODELS_ROOT / "vae",
+    '$lora': core.paths.DEFAULT_MODELS_ROOT / "loras",
+    '$cnet': core.paths.DEFAULT_MODELS_ROOT / "controlnet",
+    '$ups': core.paths.DEFAULT_MODELS_ROOT / "upscale_models",
+    '$ad': core.paths.DEFAULT_MODELS_ROOT / "adetailer",
+    '$vis': core.paths.DEFAULT_MODELS_ROOT / "clip_vision",
+    '$ext': core.paths.DEFAULT_NODES_ROOT, 
+    '$emb': core.paths.DEFAULT_MODELS_ROOT / "embeddings",
+    '$diff': core.paths.DEFAULT_MODELS_ROOT / "diffusers",
+}
+
 def run_download():
     if not SETTINGS_PATH.exists():
         print("No settings.json found! Please configure widgets and save first.")

@@ -1,0 +1,6 @@
+.ref
+__pycache__
+*.pyc
+temp_clone
+.ipynb_checkpoints
+settings.json
