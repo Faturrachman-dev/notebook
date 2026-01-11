@@ -113,10 +113,8 @@ def setup_environment():
             subprocess.run(install_cmd, check=True)
             print(">> PyTorch downgraded successfully.")
             
-            # Update globals after install
-            import importlib
-            importlib.reload(torch)
-            print(f"New Environment: Torch {torch.__version__}")
+            print(">> PyTorch downgraded successfully.")
+            print(">> IMPORTANT: You MUST restart the Jupyter Kernel after this setup for changes to take effect.")
             
     except ImportError:
         print("Environment: Torch not imported.")
