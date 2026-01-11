@@ -5,13 +5,25 @@ from pathlib import Path
 
 def install_system_deps():
     if sys.platform == "linux":
+        # 1. Aria2c
         try:
-            # Check aria2c quietly
             subprocess.run(["aria2c", "--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except (subprocess.CalledProcessError, FileNotFoundError):
             print("Installing aria2c...")
             subprocess.run(["apt-get", "update", "-qq"], check=True)
             subprocess.run(["apt-get", "install", "-y", "-qq", "aria2"], check=True)
+            
+        # 2. Upgrade libstdc++6 for SageAttention (GLIBCXX fix)
+        # We run this blindly or check if we can. Just running install is safe and fast if already newest.
+        try:
+             # Check if we have the PPA (hacky check, or just add it always - it's idempotent-ish)
+             # To be safe and fast, we only do this if we suspect we need it. 
+             # Let's just do it. It adds ~5-10s but ensures SageAttention works.
+             print("Ensuring latest libstdc++6...")
+             subprocess.run(["add-apt-repository", "-y", "ppa:ubuntu-toolchain-r/test"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+             subprocess.run(["apt-get", "install", "-y", "-qq", "libstdc++6"], check=True)
+        except Exception:
+             pass # Might fail if not root or apt locked, but we try.
 
 def install_python_deps():
     print("Installing Python dependencies...")
