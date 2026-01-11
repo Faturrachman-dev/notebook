@@ -110,23 +110,21 @@ def setup_environment():
         import torch
         print(f"Current Environment: Torch {torch.__version__} | CUDA {torch.version.cuda}")
         
-        # Downgrade 2.8+ to 2.5.1 (Stable) for SageAttention support
+        # Downgrade 2.8+ to 2.7.1 (Stable)
         if "2.8" in torch.__version__:
-            print(">> Detected unstable PyTorch 2.8. Downgrading to 2.5.1+cu124 for stability & SageAttention...")
+            print(">> Detected unstable PyTorch 2.8. Downgrading to 2.7.1 for stability...")
             # Uninstall current
-            subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "torch", "torchvision", "torchaudio"], check=False)
+            subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "torch", "torchvision", "torchaudio", "xformers"], check=False)
             
-            # Install Stable 2.5.1
+            # Install Stable 2.7.1
             install_cmd = [
                 sys.executable, "-m", "pip", "install", 
-                "torch==2.5.1", "torchvision==0.20.1", "torchaudio==2.5.1", 
+                "torch==2.7.1", "torchvision", "torchaudio", 
                 "--index-url", "https://download.pytorch.org/whl/cu124"
             ]
             subprocess.run(install_cmd, check=True)
-            print(">> PyTorch downgraded successfully.")
-            
-            print(">> PyTorch downgraded successfully.")
-            print(">> IMPORTANT: You MUST restart the Jupyter Kernel after this setup for changes to take effect.")
+            print(">> PyTorch downgraded to 2.7.1 successfully.")
+            print(">> IMPORTANT: You MUST restart the Jupyter Kernel after this setup.")
             
     except ImportError:
         print("Environment: Torch not imported.")
@@ -143,53 +141,24 @@ def setup_environment():
     except subprocess.CalledProcessError:
         print(">> Error installing triton.")
         
-    # SageAttention Cleanup (Always needed to fix ABI crash)
+    # Flash Attention / SageAttention / Xformers Strategy
+    # User Request: Use ONLY native SDPA (Scaled Dot Product Attention).
+    # We clean up any previous conflicting optimized attention libraries.
+    
+    print("Optimization: Using Native SDPA (Best stability).")
     try:
+        # Cleanup SageAttention if present (it was causing ABI crashes)
         if importlib.util.find_spec("sageattention") is not None:
-            print("Cleaning up broken SageAttention...")
-            subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "sageattention"], check=False)
-            print(">> SageAttention uninstalled.")
+             subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "sageattention"], check=False)
+             
+        # Cleanup Xformers if present (User requested only SDPA)
+        if importlib.util.find_spec("xformers") is not None:
+             subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "xformers"], check=False)
+             
     except Exception:
         pass
 
-    # Flash Attention Best-Effort Install
-    # Since SageAttention failed, user requested Flash Attention.
-    # We try typical pre-compiled wheels for Torch 2.5 + CUDA 12.x
-    print("Attempting to install Flash Attention 2...")
-    
-    fa_urls = [
-         # Official Dao-AILab (v2.7.0.post2 for cu123 - usually compat with 12.4)
-         "https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.0.post2/flash_attn-2.7.0.post2+cu123torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl",
-         # Kijai's Wheel (Guessing filename based on patterns)
-         "https://huggingface.co/Kijai/PrecompiledWheels/resolve/main/flash_attn-2.7.0.post2+cu124torch2.5.1cxx11abiFALSE-cp312-cp312-linux_x86_64.whl" 
-    ]
-    
-    local_fa_wheel = "flash_attn.whl"
-    fa_installed = False
-    
-    import importlib.util
-    if importlib.util.find_spec("flash_attn") is None:
-        for url in fa_urls:
-            try:
-                print(f"Downloading FlashAttn wheel: {url} ...")
-                subprocess.run(["aria2c", "-q", "-x", "4", "-o", local_fa_wheel, url], check=True)
-                
-                print(f"Installing {local_fa_wheel}...")
-                subprocess.run([sys.executable, "-m", "pip", "install", "-q", local_fa_wheel], check=True)
-                print(">> Flash Attention installed successfully!")
-                fa_installed = True
-                Path(local_fa_wheel).unlink(missing_ok=True)
-                break
-            except subprocess.CalledProcessError:
-                print("   -> Failed (Download or Install error)")
-                Path(local_fa_wheel).unlink(missing_ok=True)
-        
-        if not fa_installed:
-             print(">> Warning: Flash Attention wheels failed. SeedVR will use SDPA (Native PyTorch Attention).")
-    else:
-        print(">> Flash Attention already installed.")
-
-    print("Setup Complete.")
+    print("Setup Complete. Using Native SDPA.")
 
 if __name__ == "__main__":
     setup_environment()
