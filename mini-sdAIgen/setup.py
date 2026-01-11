@@ -4,29 +4,25 @@ import sys
 from pathlib import Path
 
 def install_system_deps():
-    print("Installing system dependencies...")
-    # Check for aria2c
-    try:
-        subprocess.run(["aria2c", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-        print("aria2c already installed.")
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("aria2c not found.")
-        if sys.platform.startswith("linux"):
-            print("Installing aria2 via apt-get...")
-            subprocess.run(["apt-get", "update", "-y"], check=False)
-            subprocess.run(["apt-get", "install", "-y", "aria2"], check=True)
-        elif sys.platform == "win32":
-            print("Please install aria2c manually on Windows (e.g., 'winget install aria2' or 'choco install aria2').")
-        else:
-            print("Please install aria2 manually for your OS.")
+    if sys.platform == "linux":
+        try:
+            # Check aria2c quietly
+            subprocess.run(["aria2c", "--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print("Installing aria2c...")
+            subprocess.run(["apt-get", "update", "-qq"], check=True)
+            subprocess.run(["apt-get", "install", "-y", "-qq", "aria2"], check=True)
 
 def install_python_deps():
     print("Installing Python dependencies...")
-    pkgs = ["ipywidgets", "gdown"]
-    subprocess.check_call([sys.executable, "-m", "pip", "install"] + pkgs)
+    reqs = ["ipywidgets", "gdown"]
+    # Quiet install
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q"] + reqs, check=True)
+    # Enable widgets extension quietly
+    subprocess.run(["jupyter", "nbextension", "enable", "--py", "widgetsnbextension"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def setup_environment():
-    # Detect environment
+    # 1. Detect Environment
     if os.path.exists("/kaggle/working"):
         print("Detected Kaggle environment.")
     elif os.path.exists("/content"):
@@ -34,67 +30,55 @@ def setup_environment():
     else:
         print("Detected Local/Other environment.")
 
+    # 2. Install Deps
     install_system_deps()
     install_python_deps()
-    
-    # Enable widgets extension if needed (older environments)
-    # subprocess.run(["jupyter", "nbextension", "enable", "--py", "widgetsnbextension"], check=False)
     
     # 3. Install ComfyUI if missing
     comfy_path = Path("/root/ComfyUI")
     if not comfy_path.exists():
         if sys.platform == "linux":
             print("Installing ComfyUI...")
-            subprocess.run(["git", "clone", "https://github.com/comfyanonymous/ComfyUI", str(comfy_path)], check=True)
+            subprocess.run(["git", "clone", "-q", "https://github.com/comfyanonymous/ComfyUI", str(comfy_path)], check=True)
             
             # Smart Dependency Install
             req_path = comfy_path / "requirements.txt"
             if req_path.exists():
-                print("Installing ComfyUI Dependencies (Smart)...")
+                print("Installing ComfyUI Dependencies...")
                 with open(req_path, 'r') as f:
                     reqs = f.readlines()
                 
                 filtered_reqs = []
                 for r in reqs:
                     pkg = r.strip().split('=')[0].split('<')[0].split('>')[0]
-                    if pkg.lower() in ['torch', 'torchvision', 'torchaudio', 'cupy-cuda12x', 'cupy-cuda11x']:
-                        print(f"Skipping {pkg} (assuming pre-installed)")
-                    else:
-                        filtered_reqs.append(r)
+                    # Filter out heavy/pre-installed packages
+                    if pkg.lower() not in ['torch', 'torchvision', 'torchaudio', 'cupy-cuda12x', 'cupy-cuda11x']:
+                         filtered_reqs.append(r)
                 
                 temp_reqs = Path("temp_reqs.txt")
                 with open(temp_reqs, 'w') as f:
                     f.writelines(filtered_reqs)
                 
-                subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(temp_reqs)], check=True)
+                subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(temp_reqs)], check=True)
                 temp_reqs.unlink()
-    else:
-        print("ComfyUI already installed.")
+            
+            # Install ComfyUI-Manager
+            manager_path = comfy_path / "custom_nodes" / "ComfyUI-Manager"
+            if not manager_path.exists():
+                print("Installing ComfyUI-Manager...")
+                subprocess.run(["git", "clone", "-q", "https://github.com/ltdrdata/ComfyUI-Manager", str(manager_path)], check=True)
+            
+            # Install Manager Requirements
+            man_reqs = manager_path / "requirements.txt"
+            if man_reqs.exists():
+                subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(man_reqs)], check=False)
 
-    # 4. Install ComfyUI-Manager (Always check)
-    if comfy_path.exists():
-        manager_path = comfy_path / "custom_nodes" / "ComfyUI-Manager"
-        if not manager_path.exists():
-            print("Installing ComfyUI-Manager...")
-            subprocess.run(["git", "clone", "https://github.com/ltdrdata/ComfyUI-Manager", str(manager_path)], check=True)
-        
-        # Install Manager Requirements
-        man_reqs = manager_path / "requirements.txt"
-        if man_reqs.exists():
-            print("Installing ComfyUI-Manager Requirements...")
-            subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(man_reqs)], check=False)
-
-        # Debug: List custom_nodes
-        print(f"Contents of {comfy_path}/custom_nodes:")
-        subprocess.run(["ls", "-R", str(comfy_path / "custom_nodes")], check=False)
-
-    # 5. Apply Fixes (Always check)
-    # Fix SQLAlchemy - FORCE REINSTALL
-    print("Fixing SQLAlchemy...")
-    subprocess.run([sys.executable, "-m", "pip", "install", "sqlalchemy", "--upgrade", "--force-reinstall"], check=True)
-    
-    # Install PyNgrok
-    subprocess.run([sys.executable, "-m", "pip", "install", "pyngrok"], check=True)
+            # Fix SQLAlchemy
+            print("Fixing SQLAlchemy...")
+            subprocess.run([sys.executable, "-m", "pip", "install", "-q", "sqlalchemy", "--upgrade", "--force-reinstall"], check=True)
+            
+            # Install PyNgrok
+            subprocess.run([sys.executable, "-m", "pip", "install", "-q", "pyngrok"], check=True)
             
     print("Setup Complete.")
 
