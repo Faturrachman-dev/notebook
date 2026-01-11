@@ -1,0 +1,57 @@
+The video provided is a comprehensive guide for installing **SageAttention** and **Triton** specifically for the Windows Portable version of ComfyUI, though many of the version-matching principles apply to other environments.
+
+### 1. Identify Your Environment [[03:07](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=187)]
+
+Before installing anything, you must know your specific versions of Python, PyTorch, and CUDA.
+
+* Run your ComfyUI once and check the startup log.
+* Note your **Python version** (e.g., 3.12), **PyTorch version** (e.g., 2.9.1), and **CUDA version** (e.g., 12.8).
+* In a portable environment, use `python.exe -m pip list` to verify these [[05:46](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=346)].
+
+### 2. Install Triton (Required Dependency) [[04:05](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=245)]
+
+SageAttention requires Triton to function.
+
+* **VC Redistributable:** Ensure you have the latest Visual C++ Redistributable installed on your system [[06:25](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=385)].
+* **Missing Folders Fix:** For portable versions, you may need to manually add the `include` and `libs` folders from a standard Python installation to your `python_embedded` folder to allow for compilation [[06:54](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=414)].
+* **Version Matching:** * Triton 3.5 requires PyTorch > 2.9.
+* If you have a lower PyTorch version (like 2.7), you must install an older Triton (e.g., 3.3 or lower) [[09:41](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=581)].
+
+
+* **Command:** Use `python.exe -m pip install <triton_url_or_name>` to ensure it installs to the correct embedded environment [[09:10](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=550)].
+
+### 3. Install SageAttention [[10:51](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=651)]
+
+The guide recommends using pre-compiled wheels (`.whl` files) from the official GitHub releases to avoid compilation errors.
+
+* Go to the [SageAttention Releases](https://github.com/thu-ml/SageAttention/releases) page.
+* Find the file that matches your **Python**, **PyTorch**, and **CUDA** versions exactly [[11:34](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=694)].
+* **Installation Command:** ```bash
+python.exe -m pip install <URL_TO_WHEEL_FILE>
+```
+Alternatively, download the `.whl` file and install it locally using `python.exe -m pip install <filename>.whl` [[12:48](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=768)].
+
+
+```
+
+
+
+### 4. Activating SageAttention in ComfyUI [[13:33](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=813)]
+
+There are two main ways to enable the speedup:
+
+* **Method A (Startup Flag):** Edit your `run_nvidia_gpu.bat` file and add the flag `--use-sage-attention` at the end of the command [[13:42](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=822)].
+* **Method B (Custom Node):** Use the **KJ Nodes** extension. Search for and install "KJ Nodes" via the ComfyUI Manager [[15:58](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=958)], then add the `PatchSageAttention` node to your workflow and connect it after your model loader [[17:49](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=1069)].
+
+### 5. Advanced Speed Optimizations [[20:53](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=1253)]
+
+To maximize performance, the video suggests combining SageAttention with:
+
+* **Torch Compile:** Enable the compile option in your workflow nodes [[20:53](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=1253)].
+* **FP16 Accumulation:** Use a "Patch Torch Settings" node to enable FP16, which further reduces processing time (down from 175s to 104s in the video's example) [[21:22](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=1282)].
+
+### 6. Maintenance & Crash Recovery [[22:37](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=1357)]
+
+* **Backup:** Regularly back up your `python_embedded` folder. If a new custom node or package causes a crash, you can simply delete the broken folder and restore your backup to get working again without a full reinstall [[22:53](http://www.youtube.com/watch?v=8HQiXEMW_Vw&t=1373)].
+
+For your specific **Kaggle** issue, the key takeaway from the video is that **version matching is strict**. If `pip` can't find SageAttention 2.2.0, it is likely because that version hasn't been pushed to the main PyPI repository yet, and you should use the direct link to the `.whl` file from their GitHub releases as shown in step 3.

@@ -90,9 +90,16 @@ def setup_environment():
         if seed_reqs.exists():
             subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(seed_reqs)], check=False)
 
-    # 5. Helper Libraries (SageAttention, PyNgrok, Triton)
+    # 5. Helper Libraries (PyNgrok, Triton)
     print("Checking Essential Libraries...")
     
+    # Debug: Print Environment details
+    try:
+        import torch
+        print(f"Environment: Python {sys.version_info.major}.{sys.version_info.minor} | Torch {torch.__version__} | CUDA {torch.version.cuda}")
+    except ImportError:
+        print("Environment: Torch not imported.")
+
     # PyNgrok
     try:
         subprocess.run([sys.executable, "-m", "pip", "install", "-q", "pyngrok"], check=True)
@@ -104,20 +111,18 @@ def setup_environment():
         subprocess.run([sys.executable, "-m", "pip", "install", "-q", "triton>=3.0.0"], check=True)
     except subprocess.CalledProcessError:
         print(">> Error installing triton.")
-
-    # SageAttention:
-    # We removed explicit global installation because building from source failed and PyPI version was missing.
-    # We will rely on ComfyUI-SeedVR2_VideoUpscaler/requirements.txt to handle this.
-    
-    # Debug: Print SeedVR requirements to see what it wants
-    seed_reqs = custom_nodes / "ComfyUI-SeedVR2_VideoUpscaler" / "requirements.txt"
-    if seed_reqs.exists():
-        print(f"--- SeedVR Requirements ({seed_reqs}) ---")
-        try:
-             subprocess.run(["cat", str(seed_reqs)], check=False)
-        except FileNotFoundError:
-             pass # cat might not exist on Windows
-        print("-------------------------------")
+        
+    # SageAttention Best-Effort Install
+    print("Attempting to install SageAttention 2.2.0 (Wheel)...")
+    try:
+        # Try generic Linux wheel for Python 3.12
+        wheel_url = "https://github.com/thu-ml/SageAttention/releases/download/v2.2.0/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl"
+        subprocess.run([sys.executable, "-m", "pip", "install", "-q", wheel_url], check=True)
+        print("SageAttention installed successfully.")
+    except subprocess.CalledProcessError:
+        print(">> Warning: SageAttention wheel installation failed.")
+        print(">> Your environment (PyTorch/CUDA) might be too new or mismatched.")
+        print(">> SeedVR will fallback to Flash Attention or SDPA.")
 
     print("Setup Complete.")
 
