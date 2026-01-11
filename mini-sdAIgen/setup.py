@@ -159,6 +159,28 @@ def setup_environment():
         pass
 
     print("Setup Complete. Using Native SDPA.")
+    
+    # 6. Pre-download SeedVR Models (Fixes Timeout Error)
+    print("Pre-downloading SeedVR Models (15GB+) to avoid runtime timeouts...")
+    seed_model_dir = comfy_path / "models" / "SEEDVR2"
+    seed_model_dir.mkdir(parents=True, exist_ok=True)
+    
+    models_to_download = [
+        ("seedvr2_ema_7b_fp16.safetensors", "https://huggingface.co/numz/SeedVR2_comfyUI/resolve/main/seedvr2_ema_7b_fp16.safetensors"),
+        ("ema_vae_fp16.safetensors", "https://huggingface.co/numz/SeedVR2_comfyUI/resolve/main/ema_vae_fp16.safetensors")
+    ]
+    
+    for filename, url in models_to_download:
+        dest = seed_model_dir / filename
+        if not dest.exists():
+            print(f"Downloading {filename}...")
+            try:
+                subprocess.run(["aria2c", "-x", "8", "-s", "8", "-k", "1M", "-o", filename, "-d", str(seed_model_dir), url], check=True)
+                print(f">> {filename} downloaded successfully.")
+            except subprocess.CalledProcessError:
+                print(f">> Error downloading {filename}. You may need to manual download.")
+        else:
+            print(f">> {filename} already exists.")
 
 if __name__ == "__main__":
     setup_environment()
