@@ -116,11 +116,11 @@ def setup_environment():
             # Uninstall current
             subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "torch", "torchvision", "torchaudio", "xformers"], check=False)
             
-            # Install Stable 2.7.1
+            # Install Stable 2.7.1 (CUDA 12.6)
             install_cmd = [
                 sys.executable, "-m", "pip", "install", 
-                "torch==2.7.1", "torchvision", "torchaudio", 
-                "--index-url", "https://download.pytorch.org/whl/cu124"
+                "torch==2.7.1", "torchvision==0.22.1", "torchaudio==2.7.1", 
+                "--index-url", "https://download.pytorch.org/whl/cu126"
             ]
             subprocess.run(install_cmd, check=True)
             print(">> PyTorch downgraded to 2.7.1 successfully.")
