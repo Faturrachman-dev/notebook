@@ -91,19 +91,28 @@ def setup_environment():
             subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(seed_reqs)], check=False)
 
     # 5. Helper Libraries (SageAttention, PyNgrok, Triton)
-    # Just run pip install; it checks satisfaction automatically
-    print("Checking Essential Libraries (SageAttention, Triton, PyNgrok)...")
-    libs = [
-        "pyngrok",
-        "triton>=3.0.0",
-        "sageattention==2.2.0"
-    ]
+    print("Checking Essential Libraries...")
+    
+    # PyNgrok
     try:
-        # We perform these installs; pip -q won't spam if already satisfied
-        subprocess.run([sys.executable, "-m", "pip", "install", "-q"] + libs + ["--no-build-isolation"], check=True)
+        subprocess.run([sys.executable, "-m", "pip", "install", "-q", "pyngrok"], check=True)
     except subprocess.CalledProcessError:
-        print(">> Warning: Some libraries failed to install (likely SageAttention compilation issues).")
+        print(">> Error installing pyngrok.")
 
+    # Triton
+    try:
+        subprocess.run([sys.executable, "-m", "pip", "install", "-q", "triton>=3.0.0"], check=True)
+    except subprocess.CalledProcessError:
+        print(">> Error installing triton.")
+
+    # SageAttention (Install from GitHub for V2 support)
+    try:
+        print("Installing SageAttention (from GitHub)...")
+        # Using git+https to get latest version (V2+) which might not be on PyPI
+        subprocess.run([sys.executable, "-m", "pip", "install", "-q", "git+https://github.com/thu-ml/SageAttention.git", "--no-build-isolation"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f">> Error installing SageAttention: {e}")
+        print(">> Note: SageAttention compilation requires CUDA toolkit and proper environment.")
 
     print("Setup Complete.")
 
