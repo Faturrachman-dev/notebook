@@ -143,29 +143,51 @@ def setup_environment():
     except subprocess.CalledProcessError:
         print(">> Error installing triton.")
         
-    # SageAttention Best-Effort Install
-    print("Attempting to install SageAttention 2.2.0...")
-    
-    # Authenticated Insight: Using Kijai's Precompiled Wheels from HuggingFace
-    wheel_url = "https://huggingface.co/Kijai/PrecompiledWheels/resolve/main/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl"
-    local_wheel = "sageattention-2.2.0-cp312-cp312-linux_x86_64.whl"
-    
+    # SageAttention Cleanup (Always needed to fix ABI crash)
     try:
-        print(f"Downloading wheel with aria2c: {wheel_url} ...")
-        # Use aria2c for robust download (handles timeouts/retries)
-        subprocess.run(["aria2c", "-q", "-x", "4", "-o", local_wheel, wheel_url], check=True)
+        if importlib.util.find_spec("sageattention") is not None:
+            print("Cleaning up broken SageAttention...")
+            subprocess.run([sys.executable, "-m", "pip", "uninstall", "-y", "sageattention"], check=False)
+            print(">> SageAttention uninstalled.")
+    except Exception:
+        pass
+
+    # Flash Attention Best-Effort Install
+    # Since SageAttention failed, user requested Flash Attention.
+    # We try typical pre-compiled wheels for Torch 2.5 + CUDA 12.x
+    print("Attempting to install Flash Attention 2...")
+    
+    fa_urls = [
+         # Official Dao-AILab (v2.7.0.post2 for cu123 - usually compat with 12.4)
+         "https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.0.post2/flash_attn-2.7.0.post2+cu123torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl",
+         # Kijai's Wheel (Guessing filename based on patterns)
+         "https://huggingface.co/Kijai/PrecompiledWheels/resolve/main/flash_attn-2.7.0.post2+cu124torch2.5.1cxx11abiFALSE-cp312-cp312-linux_x86_64.whl" 
+    ]
+    
+    local_fa_wheel = "flash_attn.whl"
+    fa_installed = False
+    
+    import importlib.util
+    if importlib.util.find_spec("flash_attn") is None:
+        for url in fa_urls:
+            try:
+                print(f"Downloading FlashAttn wheel: {url} ...")
+                subprocess.run(["aria2c", "-q", "-x", "4", "-o", local_fa_wheel, url], check=True)
+                
+                print(f"Installing {local_fa_wheel}...")
+                subprocess.run([sys.executable, "-m", "pip", "install", "-q", local_fa_wheel], check=True)
+                print(">> Flash Attention installed successfully!")
+                fa_installed = True
+                Path(local_fa_wheel).unlink(missing_ok=True)
+                break
+            except subprocess.CalledProcessError:
+                print("   -> Failed (Download or Install error)")
+                Path(local_fa_wheel).unlink(missing_ok=True)
         
-        print(f"Installing local wheel...")
-        subprocess.run([sys.executable, "-m", "pip", "install", "-q", local_wheel], check=True)
-        print(">> SageAttention installed successfully!")
-        
-        # Cleanup
-        Path(local_wheel).unlink(missing_ok=True)
-        
-    except subprocess.CalledProcessError:
-        print(">> Warning: SageAttention installation failed (Download or Install error).")
-        print(">> Falling back to Flash Attention/SDPA.")
-        Path(local_wheel).unlink(missing_ok=True)
+        if not fa_installed:
+             print(">> Warning: Flash Attention wheels failed. SeedVR will use SDPA (Native PyTorch Attention).")
+    else:
+        print(">> Flash Attention already installed.")
 
     print("Setup Complete.")
 
