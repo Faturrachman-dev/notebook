@@ -136,7 +136,7 @@ def setup_environment():
     
     # Authenticated Insight: Using Kijai's Precompiled Wheels from HuggingFace
     wheel_url = "https://huggingface.co/Kijai/PrecompiledWheels/resolve/main/sageattention-2.2.0-cp312-cp312-linux_x86_64.whl"
-    local_wheel = "sageattention.whl"
+    local_wheel = "sageattention-2.2.0-cp312-cp312-linux_x86_64.whl"
     
     try:
         print(f"Downloading wheel with aria2c: {wheel_url} ...")
