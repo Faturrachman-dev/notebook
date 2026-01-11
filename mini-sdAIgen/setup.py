@@ -67,17 +67,33 @@ def setup_environment():
                 
                 subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(temp_reqs)], check=True)
                 temp_reqs.unlink()
-            
-            # Install ComfyUI-Manager
-            manager_path = comfy_path / "custom_nodes" / "ComfyUI-Manager"
-            if not manager_path.exists():
-                print("Installing ComfyUI-Manager...")
-                subprocess.run(["git", "clone", "https://github.com/ltdrdata/ComfyUI-Manager", str(manager_path)], check=True)
+    else:
+        print("ComfyUI already installed.")
 
-            # Fix SQLAlchemy
-            subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "sqlalchemy"], check=True)
-            # Install PyNgrok
-            subprocess.run([sys.executable, "-m", "pip", "install", "pyngrok"], check=True)
+    # 4. Install ComfyUI-Manager (Always check)
+    if comfy_path.exists():
+        manager_path = comfy_path / "custom_nodes" / "ComfyUI-Manager"
+        if not manager_path.exists():
+            print("Installing ComfyUI-Manager...")
+            subprocess.run(["git", "clone", "https://github.com/ltdrdata/ComfyUI-Manager", str(manager_path)], check=True)
+        
+        # Install Manager Requirements
+        man_reqs = manager_path / "requirements.txt"
+        if man_reqs.exists():
+            print("Installing ComfyUI-Manager Requirements...")
+            subprocess.run([sys.executable, "-m", "pip", "install", "-r", str(man_reqs)], check=False)
+
+        # Debug: List custom_nodes
+        print(f"Contents of {comfy_path}/custom_nodes:")
+        subprocess.run(["ls", "-R", str(comfy_path / "custom_nodes")], check=False)
+
+    # 5. Apply Fixes (Always check)
+    # Fix SQLAlchemy - FORCE REINSTALL
+    print("Fixing SQLAlchemy...")
+    subprocess.run([sys.executable, "-m", "pip", "install", "sqlalchemy", "--upgrade", "--force-reinstall"], check=True)
+    
+    # Install PyNgrok
+    subprocess.run([sys.executable, "-m", "pip", "install", "pyngrok"], check=True)
             
     print("Setup Complete.")
 
